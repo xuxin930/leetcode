@@ -59,8 +59,8 @@ jdk并提提供这个接口的直接 实现，而是去实现继承了这个接�
  * is empty.
 
 有害的方法：是指可以修改这个collection的操作，但是在一些场景下这个collection却不支持种操作
-会抛出 UnsupportOperationException; 但是一些操作 没有 定义抛出这个异常，但是 实际上collection 不支持这种操作，
-那么  这个操作将不会有作用， 例如 往不可修改集合里面添加元素
+会抛出 UnsupportOperationException; 但是一些操作抛出这个异常不是必须的，但是 实际上collection 不支持这种操作，
+也就是这个操作将不会有作用，那么也可能抛出异常， 例如 往不可修改集合里面添加元素
  *
  * <p><a name="optional-restrictions">
  * Some collection implementations have restrictions on the elements that
@@ -113,6 +113,11 @@ NullPointerException ClassCastException ；试图 查询否一个某一个不合
  * the specified behavior of underlying {@link Object} methods wherever the
  * implementor deems it appropriate.
 
+ collection的许多方法例如 contains(Object o) 依赖 元素类的 equals；有时实现也会主动优化,也会避免equals的
+ 调用，例如先对于 hash code 进行比较。
+
+ - equels 和 hashcode 成对出现。
+
 
 
 
@@ -123,6 +128,16 @@ NullPointerException ClassCastException ；试图 查询否一个某一个不合
  * {@code clone()}, {@code equals()}, {@code hashCode()} and {@code toString()}
  * methods. Implementations may optionally handle the self-referential scenario,
  * however most current implementations do not do so.
+
+一些 collection 的一些操作可能会存在递归遍历，由于 “自我引用的问题” 可能引起异常，如果 这个collection直接或者间接的包含自己
+
+例如 clone ，equels ， hashcode tostring 
+
+实现需要处理这中场景；
+
+但是大部分现有的实现 没有这么做。
+
+
  *
  * <p>This interface is a member of the
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
@@ -155,6 +170,7 @@ NullPointerException ClassCastException ；试图 查询否一个某一个不合
  */
 
 public interface Collection<E> extends Iterable<E> {
+
     // Query Operations
 
     /**
@@ -166,12 +182,16 @@ public interface Collection<E> extends Iterable<E> {
      */
     int size();
 
+    最大值是 Integer.MAX_VALUE；
+
     /**
      * Returns <tt>true</tt> if this collection contains no elements.
      *
      * @return <tt>true</tt> if this collection contains no elements
      */
     boolean isEmpty();
+
+    判断是否为空
 
     /**
      * Returns <tt>true</tt> if this collection contains the specified element.
@@ -191,6 +211,11 @@ public interface Collection<E> extends Iterable<E> {
      */
     boolean contains(Object o);
 
+    不能理解 这个更正式的条件是什么意思？？？？？？
+
+    难道是有的实现是用hashcode判断的，而hashcode是存在小概率重复的？？？
+
+
     /**
      * Returns an iterator over the elements in this collection.  There are no
      * guarantees concerning the order in which the elements are returned
@@ -200,6 +225,8 @@ public interface Collection<E> extends Iterable<E> {
      * @return an <tt>Iterator</tt> over the elements in this collection
      */
     Iterator<E> iterator();
+
+    返回迭代器，不保证有序，除非 collection自己提供保证
 
     /**
      * Returns an array containing all of the elements in this collection.
@@ -218,6 +245,10 @@ public interface Collection<E> extends Iterable<E> {
      * @return an array containing all of the elements in this collection
      */
     Object[] toArray();
+
+    有序性跟随原集合
+
+    array是一个新的，独立于 collection的数组，调用者可以自由修改，不会被原collection保存引用；
 
     /**
      * Returns an array containing all of the elements in this collection;
@@ -264,6 +295,11 @@ public interface Collection<E> extends Iterable<E> {
      */
     <T> T[] toArray(T[] a);
 
+    如果 array和collection 等长，直接放入
+    如果 array小于collection长度，重新创建一个等长的array
+    如果 array大于collection，用null填充（当collection 尾部有null不方便判断长度）
+    顺序性由原来的collection决定
+
     // Modification Operations
 
     /**
@@ -301,6 +337,14 @@ public interface Collection<E> extends Iterable<E> {
      */
     boolean add(E e);
 
+    1. 可选的，先确定集合中是否存在这个元素；插入了返回 true，如果collection中存在这个
+        元素，并未不允许重复则返回false
+    2. collection可能对元素存在限制，例如 null值限制，或者元素的类型有限制
+        这应该在文档中指明
+    3. 若果collection拒绝add某个元素，且不是因为collection中已经存在了这个元素
+        应该抛出异常而不是返回false；因为要保存 存在返回值代表 “集合已经存在这个元素“
+        的意义    
+
     /**
      * Removes a single instance of the specified element from this
      * collection, if it is present (optional operation).  More formally,
@@ -323,6 +367,7 @@ public interface Collection<E> extends Iterable<E> {
      */
     boolean remove(Object o);
 
+    如果集合存在指定元素，删掉，返回true
 
     // Bulk Operations
 
@@ -345,6 +390,8 @@ public interface Collection<E> extends Iterable<E> {
      * @see    #contains(Object)
      */
     boolean containsAll(Collection<?> c);
+
+    是否包括所有的的元素
 
     /**
      * Adds all of the elements in the specified collection to this collection
@@ -372,6 +419,8 @@ public interface Collection<E> extends Iterable<E> {
      */
     boolean addAll(Collection<? extends E> c);
 
+    如果在addAll时对c进行操作这种行为是未定义的，例如往c里面添加c
+
     /**
      * Removes all of this collection's elements that are also contained in the
      * specified collection (optional operation).  After this call returns,
@@ -396,6 +445,8 @@ public interface Collection<E> extends Iterable<E> {
      * @see #contains(Object)
      */
     boolean removeAll(Collection<?> c);
+
+    如果 c removeAll（c） 是一个空的集合吗 ？？？？？？
 
     /**
      * Removes all of the elements of this collection that satisfy the given
@@ -432,6 +483,10 @@ public interface Collection<E> extends Iterable<E> {
         return removed;
     }
 
+    如果满足 Predicate条件则删除；
+
+    实现类的Iterator如果不支持删除操作，则第一个匹配的元素就会抛异常
+
     /**
      * Retains only the elements in this collection that are contained in the
      * specified collection (optional operation).  In other words, removes from
@@ -456,6 +511,8 @@ public interface Collection<E> extends Iterable<E> {
      */
     boolean retainAll(Collection<?> c);
 
+    只保留 c中的元素 
+
     /**
      * Removes all of the elements from this collection (optional operation).
      * The collection will be empty after this method returns.
@@ -464,6 +521,8 @@ public interface Collection<E> extends Iterable<E> {
      *         is not supported by this collection
      */
     void clear();
+
+    清空
 
 
     // Comparison and hashing
@@ -503,6 +562,9 @@ public interface Collection<E> extends Iterable<E> {
      */
     boolean equals(Object o);
 
+    1. 当直接继承 collection时 重写object的equals不是必须的，要慎重，list和set 比较的不是引用而是值
+    2. equals 应该是对称的
+
     /**
      * Returns the hash code value for this collection.  While the
      * <tt>Collection</tt> interface adds no stipulations to the general
@@ -519,6 +581,9 @@ public interface Collection<E> extends Iterable<E> {
      * @see Object#equals(Object)
      */
     int hashCode();
+
+    按照JAVA规约 
+    重写equals需要重写hashCode；
 
     /**
      * Creates a {@link Spliterator} over the elements in this collection.
@@ -574,6 +639,8 @@ public interface Collection<E> extends Iterable<E> {
     default Spliterator<E> spliterator() {
         return Spliterators.spliterator(this, 0);
     }
+
+    TODO 没看懂
 
     /**
      * Returns a sequential {@code Stream} with this collection as its source.
