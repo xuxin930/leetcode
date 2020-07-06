@@ -224,6 +224,8 @@ public interface Set<E> extends Collection<E> {
      */
     boolean add(E e);
 
+    添加重复元素返回false，并保持set不变；
+
 
     /**
      * Removes the specified element from this set if it is present
