@@ -18,7 +18,7 @@ public class QuickSort {
         if (l >= r) return;
         int left = l;
         int right = r;
-        int key = arr[right];//最左为key
+        int key = arr[l];//最左为key
         while (left < right) {
             //找右边的
             while (right > left && arr[right] >= key) {
@@ -29,12 +29,12 @@ public class QuickSort {
                 left++;
             }
             //左右值互换
-            if (left<right) {
+            if (left < right) {
                 swap(arr, left, right);
             }
         }
         //key值归位
-        arr[r] = arr[left];
+        arr[l] = arr[left];
         arr[left] = key;
         //递归
         sort(arr, l, left - 1);
