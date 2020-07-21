@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 /**
  * 快排
+ *  分界,一边小一边大,递归
  */
 public class QuickSort {
 
